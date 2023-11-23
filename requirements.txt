@@ -1,0 +1,7 @@
+python-engineio==3.13.2
+python-socketio==4.6.1 
+eventlet==0.30.2 
+pillow
+flask
+torchvision
+torch
