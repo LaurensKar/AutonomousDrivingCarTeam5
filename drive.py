@@ -16,6 +16,10 @@ plot_shown = False  # Choose if you want to show a summary plot or not
 
 FinetuningFile = 'finetuning.pic'  # Those are the parameters that the filters will use
 
+# Used to smooth out the steering angles by having a slight delay which makes sure no extremely abrupt changes are made
+previous_steering_angles = []
+moving_average_window = 5
+
 
 # -------------------------------------------------- Functions ---------------------------------------------
 
@@ -107,7 +111,7 @@ def finetuning(image):
 
 
 def calculate_steering_angle(image):
-    global plot_shown
+    global plot_shown, previous_steering_angles
     fig, axs = plt.subplots(3)
 
     # We grayscale our images because of simplicity, computational efficiency and edge strength.
@@ -155,8 +159,15 @@ def calculate_steering_angle(image):
     # Take the mean of the angles which is our steering direction
     steering_angle_radian = np.mean(radian_angles)
 
+    # Smoothing: Calculate the moving average of the steering angles
+    previous_steering_angles.append(steering_angle_radian)
+    if len(previous_steering_angles) > moving_average_window:
+        previous_steering_angles = previous_steering_angles[1:]
+
+    smoothed_steering_angle_radian = np.mean(previous_steering_angles)
+
     # Convert to degrees
-    steering_angle_degree = np.rad2deg(steering_angle_radian)
+    steering_angle_degree = np.rad2deg(smoothed_steering_angle_radian)
 
     if not plot_shown:
         fig.tight_layout()  # adjusting layout to avoid overlaps
