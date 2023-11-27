@@ -5,3 +5,4 @@ pillow
 flask
 torchvision
 torch
+matplotlib
