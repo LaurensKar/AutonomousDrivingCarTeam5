@@ -19,7 +19,7 @@ FinetuningFile = 'finetuning.pic'  # Those are the parameters that the filters w
 
 # -------------------------------------------------- Functions ---------------------------------------------
 
-
+# This function is used to easily finetune our parameters.
 def finetuning(image):
     if Finetune:
         if os.path.isfile(FinetuningFile):
@@ -110,6 +110,10 @@ def calculate_steering_angle(image):
     global plot_shown
     fig, axs = plt.subplots(3)
 
+    # We grayscale our images because of simplicity, computational efficiency and edge strength.
+    # Having one channel instead of 3 (red, green and blue) makes it easier to process and analyze the image. It is also
+    # computationally more efficient. Lastly grayscaling makes sure that all pixels have the same intensity level, this is helpful
+    # because edges are defined by abrupt changes in intensity or color, so by removing color it only focuses on intensity level.
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     edges, lines = finetuning(gray)
@@ -128,13 +132,26 @@ def calculate_steering_angle(image):
         axs[2].imshow(line_img, cmap='gray')
         axs[2].set_title('Lines')
 
-    # Find the slope of the line
+     # When you visualize a road going off into the distance the 2 edges of the road go towards eachother.
+    # This is what we will use to calculate the driving angle that our car needs to steer towards.
+    # First we find the slope of the edges of the racetrack
     slopes = [(y2 - y1) / (x2 - x1) if (x2 - x1) != 0 else 0 for line in lines for x1, y1, x2, y2 in line]
+    # Convert the slopes into angles measured in radians which we later use to make calculations
     radian_angles = [np.arctan(x) for x in slopes]
 
-    # Remove near horizontal lines based on a threshold
-    radian_angles = [x for x in radian_angles if abs(x) > np.pi / 12]
+    # Of course our filters and line transform aren't perfect and we will end up with quite some horizontal lines too.
+    # We know however that the edges of our racetrack (the only lines we want) will almost never be horizontal and so we filter out all
+    # lines that are less than 15 degrees.
+    threshold_angle_degrees = 15
 
+    # Convert the threshold angle to radians so we can calculate with it
+    threshold_angle_radians = np.deg2rad(threshold_angle_degrees)
+
+    # Remove near horizontal lines based on the constant threshold
+    radian_angles = [x for x in radian_angles if abs(x) > threshold_angle_radians]
+
+    # We now figure out the steering angle by calculating the mean of the slopes of the lines (hopefully only the edges of our racetrack)
+    # that still remain. This angle is where we want to steer our car towards.
     # Take the mean of the angles which is our steering direction
     steering_angle_radian = np.mean(radian_angles)
 
@@ -148,7 +165,7 @@ def calculate_steering_angle(image):
 
     return steering_angle_degree
 
-
+# Send the steering angle and the throttle to Udacity.
 def send_control(steering_angle, throttle):
     sio.emit('steer', data={
         'steering_angle': str(steering_angle),
@@ -166,7 +183,7 @@ def connect(sid, environ):
     print('Connected')
     send_control(0, 0)
 
-
+# This funtion processes telemetry data received from the simulator and sends control commands back to the simulator
 @sio.on('telemetry')
 def telemetry(sid, data):
     print('Sending control')
@@ -176,8 +193,6 @@ def telemetry(sid, data):
     angle = calculate_steering_angle(np.array(image))
     send_control(angle, 50)
 
-
-# -------------------------------------------------- Code ---------------------------------------------
 
 app = socketio.WSGIApp(sio)
 eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
