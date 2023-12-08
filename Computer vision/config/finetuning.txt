@@ -1,0 +1,11 @@
+low_threshold=103
+high_threshold=176
+rho=1
+theta=0.017453292519943295
+threshold=40
+minLineLength=40
+maxLineGap=150
+kernel1=5
+kernel2=5
+sigmax=0
+slope_threshold=1

@@ -5,6 +5,4 @@ pillow
 flask
 torchvision
 torch
-opencv-python
-numpy
 matplotlib
